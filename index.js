@@ -1,41 +1,30 @@
 import express from 'express'
-const app = express();
-import http from 'http'
-const server = http.createServer(app);
 import cors from 'cors'
-import { Server } from 'socket.io';
-
-
-const io = new Server(server, {
-    cors: '*',
-    method: ["GET", "POST"]
-});
-const corsOptions = {
-    origin: 'http://videochat77.rf.gd',
-    credentials: true
-  }
-app.use(cors(corsOptions));
-
-const PORT = 3001;
-
-app.get('/',(req, res) => {
-    res.send('Server is running')
+import authRoutes  from './routes/auth.js';
+import { obj, pickObj } from './json/axios.js';
+const app = express();
+app.use(express.json());
+app.use(cors());
+app.use(cors({
+    origin: '*', // allow only requests from this origin
+    methods: ['GET'], // allow only these methods
+    // allowedHeaders: ['Content-Type'] // allow only these headers
+  }));
+app.get('/', async (req, res) =>{
+    try {
+        const data = await pickObj();
+        res.status(200).json(data)
+    } catch (err) {
+        res.status(500).json({message: err.message})
+    }
 })
+app.use('/', authRoutes);
 
-io.on('connection', (socket) =>{
-    socket.emit('me', socket.id)
-    socket.on('disconnect', () =>{
-        socket.broadcast.emit('callended')
-    });
-    socket.on('calluser', ({userToCall, signalData, from, name}) =>{
-        io.to(userToCall).emit('calluser', {signal: signalData, from, name})
-    })
-    socket.on('answercall', (data) =>{
-        io.to(data.to).emit('callaccepted', data.signal);
-    })
+pickObj();
+// console.log(obj.words);
+// axiosGet();
+
+
+app.listen(3001, () =>{
+    console.log("Connected to port 3001");
 })
-
-server.listen(PORT, () =>{
-    console.log('connected to: ', PORT);
-})
-
